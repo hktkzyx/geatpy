@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
+import pathlib
+from typing import Callable, Iterable, Optional, Tuple, Union
 
 import numpy as np
+
+import geatpy as ea
 
 
 class Problem:
@@ -58,48 +61,50 @@ class Problem:
     """
 
     def __init__(self,
-                 name,
-                 M,
-                 maxormins,
-                 Dim,
-                 varTypes,
-                 lb,
-                 ub,
-                 lbin=None,
-                 ubin=None,
-                 aimFunc=None,
-                 evalVars=None,
-                 calReferObjV=None):
-        """描述: 构造函数."""
+                 name: str,
+                 M: int,
+                 maxormins: Iterable[int],
+                 Dim: int,
+                 varTypes: Iterable[int],
+                 lb: Iterable[float],
+                 ub: Iterable[float],
+                 lbin: Optional[Iterable[int]] = None,
+                 ubin: Optional[Iterable[int]] = None,
+                 aimFunc: Optional[Callable[[ea.Population], None]] = None,
+                 evalVars: Optional[Callable] = None,
+                 calReferObjV: Optional[Callable] = None,
+                 ReferObjV_path=None):
+        """描述: 构造函数.
+
+        Parameters
+        ----------
+        ReferObjV_path
+        """
         self.name = name
         self.M = M
-        self.maxormins = None if np.all(
-            maxormins == 1) or maxormins is None else np.array(maxormins)
+        self.maxormins = np.array(maxormins)
         self.Dim = Dim
         self.varTypes = np.array(varTypes)
         self.lb = np.array(lb)
         self.ub = np.array(ub)
         self.ranges = np.array([lb, ub])  # 初始化ranges（决策变量范围矩阵）
         if lbin is None:
-            lbin = [1] * Dim
+            lbin = np.ones(Dim)
         if ubin is None:
-            ubin = [1] * Dim
+            ubin = np.ones(Dim)
         self.borders = np.array([lbin, ubin])  # 初始化borders（决策变量范围边界矩阵）
         self.aimFunc = aimFunc if aimFunc is not None else self.aimFunc  # 初始化目标函数接口
         self.evalVars = evalVars if evalVars is not None else self.evalVars
         self.calReferObjV = calReferObjV if calReferObjV is not None else self.calReferObjV  # 初始化理论最优值计算函数接口
-        self.ReferObjV = self.getReferObjV()  # 计算目标函数参考值
+        self.ReferObjV = self.getReferObjV(
+            filepath=ReferObjV_path)  # 计算目标函数参考值
         if self.ReferObjV is not None:
-            if self.ReferObjV.shape[0] > 100:
-                chooseIdx = np.linspace(0, self.ReferObjV.shape[0] - 1,
-                                        100).astype(np.int32)
-                self.TinyReferObjV = self.ReferObjV[chooseIdx, :]
-            else:
-                self.TinyReferObjV = self.ReferObjV
+            self.TinyReferObjV = _extract_ReferObjV_with_limit_num(
+                self.ReferObjV, 100)
         else:
             self.TinyReferObjV = None
 
-    def aimFunc(self, pop):
+    def aimFunc(self, pop: ea.Population) -> None:
         """aimFunc.
 
         描述:
@@ -118,10 +123,11 @@ class Problem:
 
         """
         raise RuntimeError(
-            'error in Problem: aim function has not been initialized. (未在问题子类中设置目标函数！)'
-        )
+            'Error in Problem: aim function has not been initialized. '
+            '(未在问题子类中设置目标函数！)')
 
-    def evalVars(self, Vars):
+    def evalVars(self,
+                 Vars) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         """evalVars.
 
         描述:
@@ -145,8 +151,8 @@ class Problem:
             CV : array - 违反约束程度矩阵。
         """
         raise RuntimeError(
-            'error in Problem: aim function has not been initialized. (未在问题子类中设置目标函数！)'
-        )
+            'Error in Problem: aim function has not been initialized. '
+            '(未在问题子类中设置目标函数！)')
 
     @staticmethod
     def single(func):
@@ -160,9 +166,10 @@ class Problem:
             param = np.asarray(param)
             param = np.atleast_2d(param)
             if param.ndim > 2:
-                raise RuntimeError(
-                    'Invalid input parameter of evalVars. (evalVars的传入参数非法，必须为Numpy ndarray一维数组或二维数组。)'
-                )
+                raise TypeError(
+                    'Invalid input parameter of evalVars. '
+                    'evalVars can be convert to a 2D numpy.ndarray. '
+                    '(evalVars的传入参数非法，必须可以转换为 2D numpy.ndarray。)')
             ObjV = []
             CV = []
             for indiv in param:
@@ -177,7 +184,7 @@ class Problem:
 
         return wrapper
 
-    def evaluation(self, pop):
+    def evaluation(self, pop: ea.Population):
         """函数evaluation.
 
         描述:
@@ -202,7 +209,7 @@ class Problem:
                 pop.ObjV, pop.CV = return_object
         except RuntimeError:
             raise RuntimeError(
-                'error in Problem: '
+                'Error in Problem: '
                 'one of the function aimFunc and evalVars should be rewritten. '
                 '(aimFunc和evalVars两个函数必须至少有一个被子类重写。)')
 
@@ -214,7 +221,8 @@ class Problem:
         """
         return None
 
-    def getReferObjV(self, reCalculate=False):
+    def getReferObjV(self, reCalculate: bool = False,
+                     filepath=None) -> np.ndarray:
         """getReferObjV.
 
         描述:
@@ -225,51 +233,92 @@ class Problem:
         输入参数:
             reCalculate : bool - 表示是否要调用calReferObjV()来重新计算目标函数参考值。
                                  当缺省时默认为False。
+            filepath : path_like or None - 目标函数参考值文件
+                                            当缺省时默认为“问题名称_目标维数_决策变量个数.csv”的文件命名保存到referenceObjV文件夹内。
 
         输出参数:
-            referenceObjV : array - 存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
+            refer_obj_value : array - 存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
         """
-        if not reCalculate:
-            if self.calReferObjV.__module__ != 'geatpy.Problem':
-                # 尝试读取数据
-                if os.path.exists('referenceObjV'):
-                    if os.path.exists('referenceObjV/' + self.name + '_M'
-                                      + str(self.M) + '_D' + str(self.Dim)
-                                      + '.csv'):
-                        return np.atleast_2d(
-                            np.loadtxt(
-                                'referenceObjV/' + self.name + '_M'
-                                + str(self.M) + '_D' + str(self.Dim) + '.csv',
-                                delimiter=','))
+        if filepath is None:
+            filepath = pathlib.Path('refer_obj_value',
+                                    f'{self.name}_M{self.M}_D{self.Dim}.csv')
+        else:
+            filepath = pathlib.Path(filepath)
+        if not reCalculate and filepath.exists():
+            return _read_ReferObjV_from_csv(filepath)
         # 若找不到数据，则调用calReferObjV()计算目标函数参考值
-        referenceObjV = self.calReferObjV()
-        if referenceObjV is not None:
+        refer_obj_value = self.calReferObjV()
+        if refer_obj_value is not None:
+            refer_obj_value = np.atleast_2d(refer_obj_value)
             # 简单检查referenceObjV的合法性
-            if not isinstance(
-                    referenceObjV, np.ndarray
-            ) or referenceObjV.ndim != 2 or referenceObjV.shape[1] != self.M:
+            if refer_obj_value.ndim > 2 or refer_obj_value.shape[1] != self.M:
                 raise RuntimeError(
-                    'error: ReferenceObjV is illegal. (目标函数参考值矩阵的数据格式不合法，请检查自定义问题类中的calReferObjV('
+                    'Error: ReferenceObjV is illegal. (目标函数参考值矩阵的数据格式不合法，请检查自定义问题类中的calReferObjV('
                     ')函数的代码，假如没有目标函数参考值，则在问题类中不需要定义calReferObjV()函数。)')
             # 保存数据
-            if not os.path.exists('referenceObjV'):
-                os.makedirs('referenceObjV')
-            np.savetxt(
-                'referenceObjV/' + self.name + '_M' + str(self.M) + '_D'
-                + str(self.Dim) + '.csv',
-                referenceObjV,
-                delimiter=',')
-        self.ReferObjV = referenceObjV
-        return referenceObjV
+            _write_ReferObjV_to_csv(refer_obj_value, filepath)
+        return refer_obj_value
 
     def __str__(self):
-        info = {}
-        info['name'] = self.name
-        info['M'] = self.M
-        info['maxormins'] = self.maxormins
-        info['Dim'] = self.Dim
-        info['varTypes'] = self.varTypes
-        info['lb'] = self.lb
-        info['ub'] = self.ub
-        info['borders'] = self.borders
+        info = {
+            'name': self.name,
+            'M': self.M,
+            'maxormins': self.maxormins,
+            'Dim': self.Dim,
+            'varTypes': self.varTypes,
+            'lb': self.lb,
+            'ub': self.ub,
+            'borders': self.borders
+        }
         return str(info)
+
+
+def _read_ReferObjV_from_csv(csvpath) -> np.ndarray:
+    """Read reference objective values from the CSV file.
+
+    Parameters
+    ----------
+    csvpath : path_like
+        保存目标函数参考值的 CSV 文件。
+
+    Returns
+    -------
+    ReferObjV : (M,N) np.ndarray
+        目标函数参考值。每一行对应一组目标函数参考值，每一列对应一个目标函数。
+    """
+    return np.loadtxt(csvpath, delimiter=',', ndmin=2)
+
+
+def _write_ReferObjV_to_csv(ReferObjV, csvpath) -> None:
+    """Write reference objective values to a CSV file.
+
+    Parameters
+    ----------
+    ReferObjV : matched (M,N) array_like
+        目标函数参考值。
+    csvpath : path_like
+        保存目标函数参考值的 CSV 文件。
+    """
+    refer_objv = np.asarray(ReferObjV)
+    csvpath = pathlib.Path(csvpath)
+    if not csvpath.resolve().parent.exists():
+        csvpath.resolve().parent.mkdir()
+    np.savetxt(csvpath, refer_objv, delimiter=',')
+
+
+def _extract_ReferObjV_with_limit_num(ReferObjV, max_num) -> np.ndarray:
+    """Return part of reference objective values if exceed the maximum number.
+
+    Parameters
+    ----------
+    ReferObjV : matched (M,N) array_like
+        目标函数参考值。
+    max_num : int
+        最大数目。
+    """
+    refer_obj_value = np.asarray(ReferObjV)
+    if refer_obj_value.shape[0] > max_num:
+        indices = np.linspace(0, refer_obj_value.shape[0] - 1,
+                              num=max_num).astype(np.int32)
+        return refer_obj_value[indices, :]
+    return refer_obj_value
