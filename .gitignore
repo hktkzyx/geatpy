@@ -2,6 +2,9 @@
 .idea/
 .vscode/
 
+# Trial files
+trial/
+
 # Auto generated folder
 core/
 

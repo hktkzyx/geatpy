@@ -63,13 +63,13 @@ class Problem:
     def __init__(self,
                  name: str,
                  M: int,
-                 maxormins: Iterable[int],
+                 maxormins: Union[int, Iterable[int]],
                  Dim: int,
-                 varTypes: Iterable[int],
-                 lb: Iterable[float],
-                 ub: Iterable[float],
-                 lbin: Optional[Iterable[int]] = None,
-                 ubin: Optional[Iterable[int]] = None,
+                 varTypes: Union[int, Iterable[int]],
+                 lb: Union[float, Iterable[float]],
+                 ub: Union[float, Iterable[float]],
+                 lbin: Union[int, Iterable[int]] = 1,
+                 ubin: Union[int, Iterable[int]] = 1,
                  aimFunc: Optional[Callable[[ea.Population], None]] = None,
                  evalVars: Optional[Callable] = None,
                  calReferObjV: Optional[Callable] = None,
@@ -82,17 +82,15 @@ class Problem:
         """
         self.name = name
         self.M = M
-        self.maxormins = np.array(maxormins)
+        self.maxormins = np.broadcast_to(maxormins, M)
         self.Dim = Dim
-        self.varTypes = np.array(varTypes)
-        self.lb = np.array(lb)
-        self.ub = np.array(ub)
-        self.ranges = np.array([lb, ub])  # 初始化ranges（决策变量范围矩阵）
-        if lbin is None:
-            lbin = np.ones(Dim)
-        if ubin is None:
-            ubin = np.ones(Dim)
-        self.borders = np.array([lbin, ubin])  # 初始化borders（决策变量范围边界矩阵）
+        self.varTypes = np.broadcast_to(varTypes, Dim)
+        self.lb = np.broadcast_to(lb, Dim)
+        self.ub = np.broadcast_to(ub, Dim)
+        self.ranges = np.vstack((self.lb, self.ub))  # 初始化ranges（决策变量范围矩阵）
+        self.borders = np.vstack(
+            (np.broadcast_to(lbin, Dim),
+             np.broadcast_to(ubin, Dim)))  # 初始化borders（决策变量范围边界矩阵）
         self.aimFunc = aimFunc if aimFunc is not None else self.aimFunc  # 初始化目标函数接口
         self.evalVars = evalVars if evalVars is not None else self.evalVars
         self.calReferObjV = calReferObjV if calReferObjV is not None else self.calReferObjV  # 初始化理论最优值计算函数接口
@@ -240,7 +238,7 @@ class Problem:
             refer_obj_value : array - 存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
         """
         if filepath is None:
-            filepath = pathlib.Path('refer_obj_value',
+            filepath = pathlib.Path('referenceObjV',
                                     f'{self.name}_M{self.M}_D{self.Dim}.csv')
         else:
             filepath = pathlib.Path(filepath)
