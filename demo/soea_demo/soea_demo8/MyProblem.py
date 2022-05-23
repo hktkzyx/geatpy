@@ -14,13 +14,13 @@ class MyProblem(ea.Problem):  # 继承Problem父类
         # 问题类设置
         name = 'MyProblem'  # 初始化name（函数名称，可以随意设置）
         M = 1  # 初始化M（目标维数）
-        maxormins = [1]  # 初始化maxormins（目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标）
+        maxormins = 1  # 初始化maxormins（目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标）
         Dim = self.datas.shape[1] * self.k  # 初始化Dim
-        varTypes = [0] * Dim  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
+        varTypes = 0  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
         lb = list(np.min(self.datas, 0)) * self.k  # 决策变量下界
         ub = list(np.max(self.datas, 0)) * self.k  # 决策变量上界
-        lbin = [1] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
-        ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
+        lbin = 1  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
+        ubin = 1  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
         # 调用父类构造方法完成实例化
         ea.Problem.__init__(self,
                             name,

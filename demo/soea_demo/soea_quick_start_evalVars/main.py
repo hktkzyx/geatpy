@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     problem = ea.Problem(name='soea quick start demo',
                          M=1,
-                         maxormins=[1],
+                         maxormins=1,
                          Dim=5,
                          varTypes=[0, 0, 1, 1, 1],
                          lb=[-1, 1, 2, 1, 0],
