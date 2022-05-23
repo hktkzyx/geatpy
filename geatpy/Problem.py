@@ -56,24 +56,6 @@ class Problem:
         即`M`组目标函数参考值，每组`N`个目标函数值.
     TinyReferObjV : (M,N) np.ndarray
         从ReferObjV中均匀抽取的数目更少的目标函数参考值矩阵。
-    函数:
-        aimFunc(pop)      : 目标函数，需要在继承类即自定义的问题类中实现，或是传入已实现的函数。
-                            其中pop为Population类的对象，代表一个种群，
-                            pop对象的Phen属性（即种群染色体的表现型）等价于种群所有个体的决策变量组成的矩阵，
-                            该函数根据该Phen计算得到种群所有个体的目标函数值组成的矩阵，并将其赋值给pop对象的ObjV属性。
-                            若有约束条件，则在计算违反约束程度矩阵CV后赋值给pop对象的CV属性（详见Geatpy数据结构）。
-                            该函数不返回任何的返回值，求得的目标函数值保存在种群对象的ObjV属性中。
-                            例如：population为一个种群对象，则调用aimFunc(population)即可完成目标函数值的计算，
-                            此时可通过population.ObjV得到求得的目标函数值，population.CV得到违反约束程度矩阵。
-                            注意：在子类中，aimFunc()和evalVars()两者只能重写一个。
-
-        evalVars(v)       : 用于直接传入决策变量矩阵来计算对应的目标函数矩阵和违反约束程度矩阵。该函数需要被子类重写。
-
-        evaluation(pop)   : 调用aimFunc()或evalVars()计算传入种群的目标函数值和违反约束程度。
-
-        calReferObjV()    : 计算目标函数参考值，需要在继承类中实现，或是传入已实现的函数。
-
-        getReferObjV()    : 获取目标函数参考值。
     """
 
     def __init__(self,
