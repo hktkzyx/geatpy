@@ -8,38 +8,54 @@ import geatpy as ea
 
 
 class Problem:
-    """
-    Problem : Class - 问题类.
+    """存储与待求解问题相关信息的类.
 
-    描述:
-        问题类是用来存储与待求解问题相关信息的一个类。
+    Parameters
+    ----------
+    name : str
+        问题名称（可以自由设置名称）。
+    M : int
+        目标维数，即有多少个优化目标。
+    maxormins : array_like of int
+        目标函数最小最大化标记，1表示最小化，-1表示最大化.
+        例如：[1,1,-1,-1]，表示前2个目标是最小化，后2个目标是最大化。
+    Dim : int
+        决策变量维数，即有多少个决策变量。
+    varTypes : array_like of int
+        连续或离散标记. `0`表示对应的决策变量是连续的；`1`表示对应的变量是离散的。
+    lb : array_like of float
+        存储着各个变量的下界。
+    ub : array_like of float
+        存储着各个变量的上界。
+    lbin : array_like of int, default `1`
+        是否包含下边界。`0`表示不含，即开边界，`1`表示包含，即闭边界。
+    ubin : array_like of int, default `1`
+        是否包含上边界。`0`表示不含，即开边界，`1`表示包含，即闭边界。
+    aimFunc : function with respect to `Population`, optional
+        目标函数，需要的参数是`Population`的类对象。
+        如果是`None`，则使用类中定义的`aimFunc`方法。
+    evalVars : function, optional
+        用于直接传入决策变量矩阵来计算对应的目标函数矩阵和违反约束程度矩阵。
+        如果是`None`，则使用类中定义的`evalVars`方法。
+    calReferObjV : function, optional
+        计算目标函数参考值。
+        如果是`None`，则使用类中定义的`calReferObjV`方法。
+    ReferObjV_path : path_like, optional
+        目标函数参考值存储位置。
+        如果是`None`，则默认为`referenceObjV`文件夹下的「问题名称_目标维数_决策变量个数.csv」CSV 文件.
 
-    属性:
-        name      : str   - 问题名称（可以自由设置名称）。
-
-        M         : int   - 目标维数，即有多少个优化目标。
-
-        maxormins : array - 目标函数最小最大化标记的Numpy ndarray一维数组，1表示最小化，-1表示最大化，例如：
-                            array([1,1,-1,-1])，表示前2个目标是最小化，后2个目标是最大化。
-
-        Dim       : int   - 决策变量维数，即有多少个决策变量。
-
-        varTypes  : array - 连续或离散标记，是Numpy ndarray类型的一维数组，
-                            0表示对应的决策变量是连续的；1表示对应的变量是离散的。
-
-        lb        : array - 存储着各个变量的下界。
-
-        ub        : array - 存储着各个变量的上界。
-
-        ranges    : array - 决策变量范围矩阵，第一行对应决策变量的下界，第二行对应决策变量的上界。
-
-        borders   : array - 决策变量范围的边界矩阵，第一行对应决策变量的下边界，第二行对应决策变量的上边界，
-                            0表示范围中不含边界，1表示范围包含边界。
-
-        ReferObjV : array - 存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
-
-        TinyReferObjV : array - 从ReferObjV中均匀抽取的数目更少的目标函数参考值矩阵。
-
+    Attributes
+    ----------
+    ranges : (2,N) np.ndarray
+        决策变量范围矩阵，第一行对应决策变量的下界，第二行对应决策变量的上界。
+    borders : (2,N) np.ndarray
+        决策变量范围的边界矩阵，第一行对应决策变量的下边界，第二行对应决策变量的上边界.
+        `0`表示范围中不含边界，`1`表示范围包含边界。
+    ReferObjV : (M,N) np.ndarray
+        存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
+        即`M`组目标函数参考值，每组`N`个目标函数值.
+    TinyReferObjV : (M,N) np.ndarray
+        从ReferObjV中均匀抽取的数目更少的目标函数参考值矩阵。
     函数:
         aimFunc(pop)      : 目标函数，需要在继承类即自定义的问题类中实现，或是传入已实现的函数。
                             其中pop为Population类的对象，代表一个种群，
@@ -74,12 +90,6 @@ class Problem:
                  evalVars: Optional[Callable] = None,
                  calReferObjV: Optional[Callable] = None,
                  ReferObjV_path=None):
-        """描述: 构造函数.
-
-        Parameters
-        ----------
-        ReferObjV_path
-        """
         self.name = name
         self.M = M
         self.maxormins = np.broadcast_to(maxormins, M)
@@ -103,22 +113,25 @@ class Problem:
             self.TinyReferObjV = None
 
     def aimFunc(self, pop: ea.Population) -> None:
-        """aimFunc.
+        """用于计算整个种群的目标函数矩阵和违反约束程度矩阵的目标函数.
 
-        描述:
-            该函数需要被子类重写，用于计算整个种群的目标函数矩阵和违反约束程度矩阵。
+        其中pop为Population类的对象，代表一个种群，
+        pop对象的Phen属性（即种群染色体的表现型）等价于种群所有个体的决策变量组成的矩阵，
+        该函数根据该Phen计算得到种群所有个体的目标函数值组成的矩阵，并将其赋值给pop对象的ObjV属性。
+        若有约束条件，则在计算违反约束程度矩阵CV后赋值给pop对象的CV属性（详见Geatpy数据结构）。
+        该函数不返回任何的返回值，求得的目标函数值保存在种群对象的ObjV属性中。
+        例如：population为一个种群对象，则调用aimFunc(population)即可完成目标函数值的计算，
+        此时可通过population.ObjV得到求得的目标函数值，population.CV得到违反约束程度矩阵。
 
-        注意:
-            如果执行到这里抛出了异常，说明自定义的问题类既没有重写aimFunc()，也没有重写evalVars()。
-            aimFunc和evalVars两者中必须有一个被子类重写。
-            若子类同时重写了aimFunc和evalVars，则evalVars无效。
+        Parameters
+        ----------
+        pop : ea.Population
+            种群对象.
 
-        输入参数:
-            pop : class <Population> - 种群对象
-
-        输出参数:
-            无输出参数。
-
+        Raises
+        ------
+        RuntimeError
+            没有重写，默认抛出异常.
         """
         raise RuntimeError(
             'Error in Problem: aim function has not been initialized. '
@@ -126,27 +139,33 @@ class Problem:
 
     def evalVars(self,
                  Vars) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
-        """evalVars.
+        """Evaluate variables 用于直接传入决策变量矩阵来计算对应的目标函数矩阵和违反约束程度矩阵.
 
-        描述:
-            evalVars即evaluate variables，用于直接传入决策变量矩阵来计算对应的目标函数矩阵和违反约束程度矩阵。该函数需要被子类重写。
+        有约束时
+        ```python
+        ObjV, CV = evalVars(Vars)
+        ```
+        没有约束时
+        ```python
+        ObjV = evalVars(Vars)
+        ```
 
-        用法:
-            ObjV = evalVars(Vars)
-            ObjV, CV = evalVars(Vars)
+        Parameters
+        ----------
+        Vars : (M,) array_like
+            决策变量。每一行代表一组决策变量。
 
-        注意:
-            如果执行到这里抛出了异常，说明自定义的问题类既没有重写aimFunc()，也没有重写evalVars()。
-            aimFunc和evalVars两者的其中一个必须有一个被子类重写。
-            若子类同时重写了aimFunc和evalVars，则evalVars无效。
+        Returns
+        -------
+        ObjV : (M,N) np.ndarray
+            目标函数值。`M`个决策变量，`N`个目标函数值。
+        CV : (M,) np.ndarray
+            违反约束程度矩阵。如果没有约束，则不返回这一项。
 
-        输入参数:
-            Vars : array - 决策变量矩阵。每一行代表一组决策变量。
-
-        输出参数:
-            ObjV : array - 目标函数值矩阵。
-
-            CV : array - 违反约束程度矩阵。
+        Raises
+        ------
+        RuntimeError
+            没有重写，默认抛出异常.
         """
         raise RuntimeError(
             'Error in Problem: aim function has not been initialized. '
@@ -154,10 +173,10 @@ class Problem:
 
     @staticmethod
     def single(func):
-        """装饰器 decorator singe.
+        """单组决策变量装饰器.
 
-        描述: 装饰器single。通过给目标函数添加装饰器，可以更专注于问题的模型本身。因为此时传入自定义目标函数的只有一个个体或一组决策变量。
-        用法: 给evalVars()加上single装饰器标记后，可以让evalVars()的传入参数：Vars变成Numpy ndarray一维数组。即只传入一组决策变量。
+        装饰器single。通过给目标函数添加装饰器，可以更专注于问题的模型本身。因为此时传入自定义目标函数的只有一组决策变量。
+        装饰后的函数可以作为参数传入`evalVars`。详见demo.
         """
 
         def wrapper(param):
@@ -183,15 +202,19 @@ class Problem:
         return wrapper
 
     def evaluation(self, pop: ea.Population):
-        """函数evaluation.
+        """调用aimFunc()或evalVars()计算传入种群的目标函数值和违反约束程度.
 
-        描述:
-            调用aimFunc()或evalVars()计算传入种群的目标函数值和违反约束程度。
-        注意:
-            若子类同时重写了aimFunc和evalVars，则evalVars无效。
+        优先调用`aimFunc`，如果`aimFunc`没有重写，则调用`evalVars`。
 
-        输入参数:
-            pop : class <Population> - 种群对象。
+        Parameters
+        ----------
+        pop : ea.Pupulation
+            种群对象.
+
+        Raises
+        ------
+        RuntimeError
+            `aimFunc`和`evalVars`都未重写.
         """
         # 先尝试执行aimFunc()
         try:
@@ -211,31 +234,39 @@ class Problem:
                 'one of the function aimFunc and evalVars should be rewritten. '
                 '(aimFunc和evalVars两个函数必须至少有一个被子类重写。)')
 
-    def calReferObjV(self):
-        """calReferObjV.
+    def calReferObjV(self) -> Optional[np.ndarray]:
+        """计算目标函数的参考值.
 
-        描述:
-            如果待优化的模型知道理论全局最优解，则可以在自定义问题类里重写该函数，求出理论全局最优解对应的目标函数值矩阵。
+        如果待优化的模型知道理论全局最优解，则可以在自定义问题类里重写该函数，求出理论全局最优解对应的目标函数值矩阵。
+
+        Returns
+        -------
+        (M,N) np.ndarray or None
+            目标函数参考值。每一行代表一组参考值，每一列代表一个目标函数值。
+            如果是`None`，则表示没有参考值。
         """
         return None
 
     def getReferObjV(self, reCalculate: bool = False,
                      filepath=None) -> np.ndarray:
-        """getReferObjV.
+        """获取目标函数参考值.
 
-        描述:
-            该函数用于读取/计算问题的目标函数参考值，这个参考值可以是理论上的全局最优解的目标函数值，也可以是人为设定的非最优的目标函数参考值。
-            在获取或计算出理论全局最优解后，
-            结果将被按照“问题名称_目标维数_决策变量个数.csv”的文件命名保存到referenceObjV文件夹内。
+        该函数用于读取/计算问题的目标函数参考值。
+        这个参考值可以是理论上的全局最优解的目标函数值，也可以是人为设定的非最优的目标函数参考值。
+        在获取或计算出理论全局最优解后，结果将保存到`filepath`文件内。
 
-        输入参数:
-            reCalculate : bool - 表示是否要调用calReferObjV()来重新计算目标函数参考值。
-                                 当缺省时默认为False。
-            filepath : path_like or None - 目标函数参考值文件
-                                            当缺省时默认为“问题名称_目标维数_决策变量个数.csv”的文件命名保存到referenceObjV文件夹内。
+        Parameters
+        ----------
+        reCalculate : bool, default `False`
+            表示是否要调用`calReferObjV`来重新计算目标函数参考值。
+        filepath : path_like or None
+            目标函数参考值文件。
+            当缺省时结果默认保存到`referenceObjV`文件夹下的「问题名称_目标维数_决策变量个数.csv」CSV 文件。
 
-        输出参数:
-            refer_obj_value : array - 存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
+        Returns
+        -------
+        refer_obj_value : (M,N) np.ndarray
+            存储着目标函数参考值的矩阵，每一行对应一组目标函数参考值，每一列对应一个目标函数。
         """
         if filepath is None:
             filepath = pathlib.Path('referenceObjV',
