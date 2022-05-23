@@ -17,9 +17,9 @@ if __name__ == '__main__':
                          M=2,
                          maxormins=[1, 1],
                          Dim=1,
-                         varTypes=[0],
-                         lb=[-10],
-                         ub=[10],
+                         varTypes=0,
+                         lb=-10,
+                         ub=10,
                          evalVars=evalVars)
     # 构建算法
     algorithm = ea.moea_NSGA2_templet(

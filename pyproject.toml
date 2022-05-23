@@ -13,3 +13,10 @@ split_all_top_level_comma_separated_values = true
 
 [tool.isort]
 profile = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "geatpy"]
+addopts = "--doctest-modules"
+
+[tool.coverage.run]
+source_pkgs = ["geatpy"]

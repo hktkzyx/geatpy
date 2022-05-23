@@ -25,15 +25,14 @@ if __name__ == '__main__':
         pop.CV = np.hstack([(x1 - 0.5)**2 - 0.25,
                             (x2 - 1)**2 - 1])  # 计算违反约束程度值，赋值给种群对象的CV属性
 
-    problem = ea.Problem(
-        name='soea quick start demo',
-        M=1,  # 目标维数
-        maxormins=[1],  # 目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标
-        Dim=5,  # 决策变量维数
-        varTypes=[0, 0, 1, 1, 1],  # 决策变量的类型列表，0：实数；1：整数
-        lb=[-1, 1, 2, 1, 0],  # 决策变量下界
-        ub=[1, 4, 5, 2, 1],  # 决策变量上界
-        aimFunc=aimFunc)
+    problem = ea.Problem(name='soea quick start demo',
+                         M=1,
+                         maxormins=1,
+                         Dim=5,
+                         varTypes=[0, 0, 1, 1, 1],
+                         lb=[-1, 1, 2, 1, 0],
+                         ub=[1, 4, 5, 2, 1],
+                         aimFunc=aimFunc)
     # 构建算法
     algorithm = ea.soea_SEGA_templet(
         problem,

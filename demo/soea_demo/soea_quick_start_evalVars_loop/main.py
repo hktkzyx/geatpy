@@ -21,15 +21,14 @@ if __name__ == '__main__':
             CV.append(np.array([(x1 - 0.5)**2 - 0.25, (x2 - 1)**2 - 1]))
         return np.vstack(f), np.vstack(CV)  # 返回目标函数值矩阵和违反约束程度矩阵
 
-    problem = ea.Problem(
-        name='soea quick start demo',
-        M=1,  # 目标维数
-        maxormins=[1],  # 目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标
-        Dim=5,  # 决策变量维数
-        varTypes=[0, 0, 1, 1, 1],  # 决策变量的类型列表，0：实数；1：整数
-        lb=[-1, 1, 2, 1, 0],  # 决策变量下界
-        ub=[1, 4, 5, 2, 1],  # 决策变量上界
-        evalVars=evalVars)
+    problem = ea.Problem(name='soea quick start demo',
+                         M=1,
+                         maxormins=1,
+                         Dim=5,
+                         varTypes=[0, 0, 1, 1, 1],
+                         lb=[-1, 1, 2, 1, 0],
+                         ub=[1, 4, 5, 2, 1],
+                         evalVars=evalVars)
     # 构建算法
     algorithm = ea.soea_SEGA_templet(
         problem,
