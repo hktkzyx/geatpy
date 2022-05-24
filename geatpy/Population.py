@@ -377,10 +377,10 @@ class Population:
         """获取种群的设置信息."""
         return {
             'Type': 'Population',
-            'Population Encoding:': self.Encoding,
+            'Population Encoding': self.Encoding,
             'Population ChromNum': self.ChromNum,
-            'Population Field:': self.Field,
-            'Population size:': self.sizes
+            'Population Field': self.Field,
+            'Population size': self.sizes
         }
 
     def __str__(self):

@@ -59,6 +59,21 @@ def test_population_getitem(population_with_field):
     assert selected.Phen is None
 
 
+def test_population_getitem_with_minus_index(population_with_field):
+    pop = population_with_field
+    pop.initChrom()
+    pop.ObjV = np.arange(10).reshape((5, 2))
+    selected = pop[-2:]
+    assert pop.Encoding == selected.Encoding
+    assert np.array_equal(pop.Field, selected.Field)
+    assert len(selected) == 2
+    assert np.array_equal(pop.Chrom[-2:, :], selected.Chrom)
+    assert np.array_equal(selected.ObjV, [[6, 7], [8, 9]])
+    assert selected.FitnV is None
+    assert selected.CV is None
+    assert selected.Phen is None
+
+
 def test_population_shuffle(population_with_field):
     pop = population_with_field
     pop.initChrom()
@@ -128,3 +143,29 @@ def test_add_population_without_encoding(population_with_field,
     assert len(pop) == 6
     assert np.array_equal(pop.ObjV,
                           np.vstack((pop_special.ObjV, pop_normal.ObjV)))
+
+
+def test_population_getInfo(population_with_field):
+    pop = population_with_field
+    pop.initChrom()
+    pop.ObjV = np.arange(10).reshape((5, 2))
+    info = pop.getInfo()
+    assert info['Type'] == 'Population'
+    assert info['Population Encoding'] == 'BG'
+    assert info['Population ChromNum'] == 1
+    assert info['Population size'] == 5
+
+
+def test_population_str(population_without_encoding):
+    expect = ("{'Type': 'Population', "
+              "'Population Encoding': None, "
+              "'Population ChromNum': 1, "
+              "'Population Field': None, "
+              "'Population size': 0, "
+              "'Population Chrom': None, "
+              "'Population Lind': 0, "
+              "'Population FitnV': None, "
+              "'Population ObjV': None, "
+              "'Population CV': None, "
+              "'Population Phen': None}")
+    assert expect == str(population_without_encoding)
