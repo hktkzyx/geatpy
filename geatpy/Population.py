@@ -25,7 +25,7 @@ class Population:
         种群将不携带与染色体直接相关的信息，可以减少不必要的数据存储，
         这种用法可以在只想统计非染色体直接相关的信息时使用，
         尤其可以在多种群进化优化过程中对个体进行统一的适应度评价时使用。
-    Field : array_like or tuple of np.ndarray
+    Field : array_like or tuple of np.ndarray, optional
         译码矩阵，可以是`FieldD`或`FieldDR`（详见Geatpy数据结构）。
         2.7.0版本之后，可以把问题类对象的`varTypes`、`ranges`、`borders`放到一个元组中传入到此处，
         即`Field = (varTypes, ranges, borders)`
@@ -87,7 +87,7 @@ class Population:
                                '(种群规模设置有误，必须为非负整数。)')
         self.ChromNum = 1
         self.Encoding = Encoding
-        if Encoding is None:
+        if Encoding is None or Field is None:
             self.Field = None
         elif type(Field) == tuple:
             self.Field = ea.crtfld(Encoding, *Field)
