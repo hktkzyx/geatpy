@@ -190,7 +190,7 @@ class Problem:
 
         Parameters
         ----------
-        pop : ea.Pupulation
+        pop : ea.Population
             种群对象.
 
         Raises
