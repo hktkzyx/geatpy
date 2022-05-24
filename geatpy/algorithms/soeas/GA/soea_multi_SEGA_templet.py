@@ -100,15 +100,14 @@ class soea_multi_SEGA_templet(ea.SoeaAlgorithm):
         注：返回的unitePop不携带Field和Chrom的信息，因为其Encoding=None。
         """
         # 遍历种群列表，构造联合种群
-        unitePop = ea.Population(
-            None,
-            None,
-            population[0].sizes,
-            None,  # 第一个输入参数传入None，设置Encoding为None
-            ObjV=population[0].ObjV,
-            FitnV=population[0].FitnV,
-            CV=population[0].CV,
-            Phen=population[0].Phen)
+        unitePop = ea.Population(None,
+                                 None,
+                                 population[0].sizes,
+                                 None,
+                                 ObjV=population[0].ObjV,
+                                 FitnV=population[0].FitnV,
+                                 CV=population[0].CV,
+                                 Phen=population[0].Phen)
         for i in range(1, self.PopNum):
             unitePop += population[i]
         return unitePop
